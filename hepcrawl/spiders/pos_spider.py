@@ -40,14 +40,20 @@ class POSSpider(StatefulSpider):
             $ scrapy crawl PoS \\
             -a source_file=file://`pwd`/tests/unit/responses/pos/sample_pos_record.xml
     """
-    name = 'PoS'
-    BASE_CONFERENCE_PAPER_URL = "https://pos.sissa.it/contribution?id="
+    name = 'pos'
     # pos_proceedings_url = "https://pos.sissa.it/cgi-bin/reader/conf.cgi?confid="
 
-    def __init__(self, source_file=None, **kwargs):
+    def __init__(
+        self,
+        source_file=None,
+        base_conference_paper_url='https://pos.sissa.it/contribution?id=',
+        # TODO to be changed without question in the url
+        **kwargs
+    ):
         """Construct POS spider."""
         super(POSSpider, self).__init__(**kwargs)
         self.source_file = source_file
+        self.BASE_CONFERENCE_PAPER_URL = base_conference_paper_url
 
     def start_requests(self):
         yield Request(self.source_file)
@@ -160,7 +166,7 @@ class POSSpider(StatefulSpider):
     def _get_ext_systems_number(node):
         return [
             {
-                'institute': 'PoS',
+                'institute': 'pos',
                 'value': node.xpath('.//identifier/text()').extract_first()
             },
         ]
@@ -187,10 +193,18 @@ class POSSpider(StatefulSpider):
             )
             for affiliation in author.xpath('.//affiliation//text()').extract():
                 if 'affiliations' in auth_dict:
-                    auth_dict['affiliations'].append({'value': affiliation})
+                    auth_dict['affiliations'].append(
+                        {
+                            'value': affiliation
+                        }
+                    )
                     # Todo probably to remove
                 else:
-                    auth_dict['affiliations'] = [{'value': affiliation}, ]
+                    auth_dict['affiliations'] = [
+                        {
+                            'value': affiliation
+                        },
+                    ]
             if auth_dict:
                 authors.append(auth_dict)
         return authors

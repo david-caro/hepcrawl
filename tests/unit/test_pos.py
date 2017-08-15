@@ -155,7 +155,7 @@ def test_pipeline_record(generated_record):
         'acquisition_source': {
             'datetime': '2017-08-10T16:03:59.091110',
             'method': 'hepcrawl',
-            'source': 'PoS',
+            'source': 'pos',
             'submission_number': 'scrapy_job'
         },
         'authors': [
