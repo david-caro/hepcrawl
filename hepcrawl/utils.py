@@ -384,7 +384,7 @@ def get_license_by_text(license_text):
             license = get_license_by_url(license_url=LICENSE_TEXTS[key])
 
     return license
-
+ 2
 
 class RecordFile(object):
     """Metadata of a file needed for a record.
