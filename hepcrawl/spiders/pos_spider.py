@@ -41,19 +41,21 @@ class POSSpider(StatefulSpider):
             -a source_file=file://`pwd`/tests/unit/responses/pos/sample_pos_record.xml
     """
     name = 'pos'
-    # pos_proceedings_url = "https://pos.sissa.it/cgi-bin/reader/conf.cgi?confid="
 
     def __init__(
         self,
         source_file=None,
         base_conference_paper_url='https://pos.sissa.it/contribution?id=',
+        base_proceedings_url='https://pos.sissa.it/cgi-bin/reader/conf.cgi?confid=',
         # TODO to be changed without question in the url
+        # TODO make valid CA certificate
         **kwargs
     ):
         """Construct POS spider."""
         super(POSSpider, self).__init__(**kwargs)
         self.source_file = source_file
         self.BASE_CONFERENCE_PAPER_URL = base_conference_paper_url
+        self.BASE_PROCEEDINGS_URL = base_proceedings_url
 
     def start_requests(self):
         yield Request(self.source_file)
@@ -81,18 +83,24 @@ class POSSpider(StatefulSpider):
             response=response,
         )
 
-        # # Yield request for Conference page
-        # proceedings_identifier = response.selector.xpath("//a[contains(@href,'?confid')]/@href").extract_first()
-        # proceedings_identifier = proceedings_identifier.split('=')[1]
-        # pos_url = "{0}{1}".format(self.pos_proceedings_url, proceedings_identifier)
+        # TODO Yield request for Conference page
+        proceedings_identifier = response.selector.xpath("//a[contains(@href,'?confid')]/@href").extract_first()
+        proceedings_identifier = proceedings_identifier.split('=')[1]
+        pos_url = "{0}{1}".format(self.BASE_PROCEEDINGS_URL, proceedings_identifier)
+        self.log('===> scrape_conference_paper url::{pos_url}'.format(**vars()))
         # yield Request(pos_url, callback=self.scrape_proceedings)
 
-        return self.build_conference_paper_item(response)
+        yield self.build_conference_paper_item(response)
 
-    # def scrape_proceedings(self, response):
-    #     # create proceedings record
-    #     import pytest
-    #     pytest.set_trace()
+    def scrape_proceedings(self, response):
+        # TODO create proceedings record
+        # TODO document_type = proceeding
+        # TODO title = template(“Proceedings, <title>”)
+        # TODO subtitle = template(“<place>, <date>”)
+        # TODO publication_info.journal_title = “PoS”
+        # TODO publication_info.journal_volume = identifier
+
+        pass
 
     def build_conference_paper_item(self, response):
         """Parse an PoS XML exported file into a HEP record."""

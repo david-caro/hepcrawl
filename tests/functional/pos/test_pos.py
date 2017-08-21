@@ -64,10 +64,10 @@ def set_up_oai_environment():
         ),
     ],
     ids=[
-        'smoke',
+        'conference_paper_record_only',
     ]
 )
-def test_pos(
+def test_pos_conference_paper_record(
         set_up_oai_environment,
         expected_results,
 ):
@@ -89,3 +89,9 @@ def test_pos(
     expected_results = [override_generated_fields(expected) for expected in expected_results]
 
     assert sorted(gotten_results) == expected_results
+
+
+# TODO create test that receives conference paper record AND proceedings record.
+
+
+# TODO create test that receives proceedings record ONLY.

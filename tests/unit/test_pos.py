@@ -66,7 +66,7 @@ def generated_record(scrape_pos_page_body):
 
     pipeline = InspireCeleryPushPipeline()
     pipeline.open_spider(spider)
-    parsed_item = request.callback(response)
+    parsed_item = request.callback(response).next()
     parsed_record = pipeline.process_item(parsed_item, spider)
     assert parsed_record
 
