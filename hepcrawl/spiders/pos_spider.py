@@ -72,8 +72,9 @@ class POSSpider(StatefulSpider):
                 # Probably all links lead to same place, so take first
                 conference_paper_url = "{0}{1}".format(self.BASE_CONFERENCE_PAPER_URL, identifier)
                 request = Request(conference_paper_url, callback=self.scrape_conference_paper)
-                request.meta["url"] = response.url
-                request.meta["record"] = record.extract()
+                request.meta['url'] = response.url
+                request.meta['record'] = record.extract()
+                request.meta['identifier'] = identifier
                 yield request
 
     def scrape_conference_paper(self, response):
@@ -83,24 +84,48 @@ class POSSpider(StatefulSpider):
             response=response,
         )
 
-        # TODO Yield request for Conference page
-        proceedings_identifier = response.selector.xpath("//a[contains(@href,'?confid')]/@href").extract_first()
-        proceedings_identifier = proceedings_identifier.split('=')[1]
-        pos_url = "{0}{1}".format(self.BASE_PROCEEDINGS_URL, proceedings_identifier)
+        # Scrape proceedings record
+        pos_url = self._get_proceedings_url(response)
         self.log('===> scrape_conference_paper url::{pos_url}'.format(**vars()))
-        # yield Request(pos_url, callback=self.scrape_proceedings)
+        meta = {
+            'identifier': response.meta.get('identifier'),
+        }
+        yield Request(
+            pos_url,
+            callback=self.scrape_proceedings,
+            meta=meta,
+        )
 
         yield self.build_conference_paper_item(response)
 
     def scrape_proceedings(self, response):
-        # TODO create proceedings record
-        # TODO document_type = proceeding
-        # TODO title = template(“Proceedings, <title>”)
-        # TODO subtitle = template(“<place>, <date>”)
-        # TODO publication_info.journal_title = “PoS”
-        # TODO publication_info.journal_volume = identifier
+        node = Selector(
+            text=response.body,
+            type='html',
+        )
+        node.remove_namespaces()
+        record = HEPLoader(
+            item=HEPRecord(),
+            selector=node
+        )
 
-        pass
+        record.add_value('collections', ['proceeding'])
+        record.add_value('title', self._get_proceedings_title(node=node))
+        record.add_value('subtitle', self._get_proceedings_date_place(node=node))
+        record.add_value('journal_title', 'PoS')
+        record.add_value(
+            'journal_volume',
+            self._get_journal_volume(
+                identifier=response.meta.get('identifier'),
+            )
+        )
+
+        parsed_item = ParsedItem(
+            record=record.load_item(),
+            record_format='hepcrawl',
+        )
+
+        return parsed_item
 
     def build_conference_paper_item(self, response):
         """Parse an PoS XML exported file into a HEP record."""
@@ -152,6 +177,13 @@ class POSSpider(StatefulSpider):
             self.BASE_CONFERENCE_PAPER_URL,
             conference_paper_pdf_url,
         )
+
+    def _get_proceedings_url(self, response):
+        internal_url = response.selector.xpath(
+            "//a[not(contains(text(),'pdf'))]/@href",
+        ).extract_first()
+        proceedings_identifier = internal_url.split('/')[1]
+        return '{0}{1}'.format(self.BASE_PROCEEDINGS_URL, proceedings_identifier)
 
     @staticmethod
     def _get_language(node):
@@ -216,3 +248,12 @@ class POSSpider(StatefulSpider):
             if auth_dict:
                 authors.append(auth_dict)
         return authors
+
+    @staticmethod
+    def _get_proceedings_title(node):
+        return node.xpath('//h1/text()').extract_first()
+
+    @staticmethod
+    def _get_proceedings_date_place(node):
+        date_place = node.xpath("//div[@class='conference_date']/text()").extract()
+        return ''.join(date_place)
